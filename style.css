@@ -28,8 +28,9 @@ body.break-mode {
     padding: 2rem;
     border-radius: 20px;
     box-shadow: 0 0 20px rgba(0,0,0,0.1);
-    max-width: 500px;
-    width: 90%;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 h1 {
@@ -189,4 +190,243 @@ h1 {
 .circle-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.app-container {
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+    gap: 2rem;
+    margin-top: 2rem;
+    align-items: start;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.timer-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.tasks-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+    max-height: 600px;
+}
+
+.tasks-header {
+    margin-bottom: 1.5rem;
+}
+
+.tasks-header h2 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.task-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+#newTask {
+    flex: 1;
+    padding: 0.8rem;
+    border: 2px solid #ddd;
+    border-radius: 20px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+#newTask:focus {
+    border-color: #2ecc71;
+    outline: none;
+}
+
+#addTask {
+    width: 40px;
+    height: 40px;
+    background-color: #2ecc71;
+    padding: 0.5rem;
+}
+
+.tasks-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    cursor: move;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.task-item:hover {
+    border-color: #2ecc71;
+    transform: translateX(5px);
+}
+
+.task-item.dragging {
+    opacity: 0.5;
+    border: 2px dashed #2ecc71;
+}
+
+.task-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #2ecc71;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+}
+
+.task-checkbox.checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background-color: #2ecc71;
+    border-radius: 50%;
+}
+
+.task-content {
+    flex: 1;
+    font-size: 1rem;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.3s;
+    text-align: left;
+    padding-left: 0.5rem;
+}
+
+.task-item.completed .task-content {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.task-item:hover .task-actions {
+    opacity: 1;
+}
+
+.task-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.task-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+}
+
+.edit-btn {
+    background-color: #f1c40f;
+}
+
+.delete-btn {
+    background-color: #e74c3c;
+}
+
+.task-btn:hover {
+    transform: scale(1.1);
+}
+
+/* 自定义滚动条 */
+.tasks-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tasks-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb {
+    background: #2ecc71;
+    border-radius: 3px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+    .app-container {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+    
+    .container {
+        padding: 1rem;
+    }
+    
+    .tasks-section {
+        min-height: 300px;
+    }
+    
+    .progress-ring {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .progress-ring svg {
+        width: 250px;
+        height: 250px;
+    }
+}
+
+/* 在现有样式后添加 */
+
+.task-item.current {
+    border-color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
+}
+
+.focus-btn {
+    background-color: #3498db;
+}
+
+.focus-btn.active {
+    background-color: #2ecc71;
+}
+
+.task-item.completed .focus-btn {
+    display: none;
+}
+
+/* 添加专注状态样式 */
+.task-item.current .task-content::after {
+    content: '专注中...';
+    font-size: 0.8rem;
+    color: #2ecc71;
+    margin-left: 0.5rem;
+    font-style: italic;
 } 

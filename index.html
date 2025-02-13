@@ -9,51 +9,71 @@
 <body>
     <div class="container">
         <h1>番茄时钟</h1>
-        
-        <div class="timer">
-            <!-- SVG 圆形进度条 -->
-            <div class="progress-ring">
-                <svg width="300" height="300">
-                    <circle class="progress-ring__circle-bg" cx="150" cy="150" r="140" />
-                    <circle class="progress-ring__circle" cx="150" cy="150" r="140" />
-                </svg>
-                <div class="timer-display">
-                    <div class="time-display">25:00</div>
-                    <div class="status">工作时间</div>
+        <div class="app-container">
+            <!-- 左侧计时器部分 -->
+            <div class="timer-section">
+                <div class="timer">
+                    <div class="progress-ring">
+                        <svg width="300" height="300">
+                            <circle class="progress-ring__circle-bg" cx="150" cy="150" r="140" />
+                            <circle class="progress-ring__circle" cx="150" cy="150" r="140" />
+                        </svg>
+                        <div class="timer-display">
+                            <div class="time-display">25:00</div>
+                            <div class="status">工作时间</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="time-settings">
+                    <div class="preset-times">
+                        <button class="time-preset active" data-time="25">25分钟</button>
+                        <button class="time-preset" data-time="30">30分钟</button>
+                        <button class="time-preset" data-time="45">45分钟</button>
+                        <button class="time-preset" data-time="60">60分钟</button>
+                    </div>
+                    <div class="custom-time">
+                        <input type="number" id="customTime" min="1" max="120" placeholder="自定义时间(分钟)">
+                        <button id="setCustomTime">设置</button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="start" class="circle-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </button>
+                    <button id="pause" class="circle-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                    </button>
+                    <button id="reset" class="circle-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
-        </div>
 
-        <!-- 时间设置 -->
-        <div class="time-settings">
-            <div class="preset-times">
-                <button class="time-preset active" data-time="25">25分钟</button>
-                <button class="time-preset" data-time="30">30分钟</button>
-                <button class="time-preset" data-time="45">45分钟</button>
-                <button class="time-preset" data-time="60">60分钟</button>
+            <!-- 右侧任务列表部分 -->
+            <div class="tasks-section">
+                <div class="tasks-header">
+                    <h2>任务列表</h2>
+                    <div class="task-input-group">
+                        <input type="text" id="newTask" placeholder="添加新任务...">
+                        <button id="addTask" class="circle-btn">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="tasks-list" id="tasksList">
+                    <!-- 任务列表将通过 JavaScript 动态生成 -->
+                </div>
             </div>
-            <div class="custom-time">
-                <input type="number" id="customTime" min="1" max="120" placeholder="自定义时间(分钟)">
-                <button id="setCustomTime">设置</button>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button id="start" class="circle-btn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                </svg>
-            </button>
-            <button id="pause" class="circle-btn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                </svg>
-            </button>
-            <button id="reset" class="circle-btn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-                </svg>
-            </button>
         </div>
         <audio id="alert" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
     </div>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>番茄时钟</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -32,9 +33,21 @@
                         <button class="time-preset" data-time="45">45分钟</button>
                         <button class="time-preset" data-time="60">60分钟</button>
                     </div>
-                    <div class="custom-time">
-                        <input type="number" id="customTime" min="1" max="120" placeholder="自定义时间(分钟)">
-                        <button id="setCustomTime">设置</button>
+                    <div class="custom-time-settings">
+                        <div class="custom-time-input">
+                            <input type="number" id="customWorkTime" placeholder="工作时间(5-120分钟)">
+                            <button id="setCustomWorkTime">设置工作时间</button>
+                        </div>
+                        <div class="custom-time-input">
+                            <input type="number" id="customBreakTime" placeholder="休息时间(1-30分钟)">
+                            <button id="setCustomBreakTime">设置休息时间</button>
+                        </div>
+                    </div>
+                    <div class="time-settings-display">
+                        <div class="time-settings-info">
+                            <div>当前工作时间：<span id="currentWorkTime">25分钟</span></div>
+                            <div>当前休息时间：<span id="currentBreakTime">5分钟</span></div>
+                        </div>
                     </div>
                 </div>
 
@@ -57,7 +70,7 @@
                 </div>
             </div>
 
-            <!-- 右侧任务列表部分 -->
+            <!-- 中间任务列表部分 -->
             <div class="tasks-section">
                 <div class="tasks-header">
                     <h2>任务列表</h2>
@@ -72,6 +85,71 @@
                 </div>
                 <div class="tasks-list" id="tasksList">
                     <!-- 任务列表将通过 JavaScript 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 右侧统计部分 -->
+            <div class="stats-section">
+                <div class="stats-header">
+                    <div class="stats-title">
+                        <h2>数据统计</h2>
+                        <div class="stats-controls">
+                            <button class="stats-btn" id="weekStats">本周</button>
+                            <button class="stats-btn" id="monthStats">本月</button>
+                            <button class="stats-btn" id="exportStats">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                                </svg>
+                                导出
+                            </button>
+                            <button class="stats-btn" id="backToMain">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                                </svg>
+                                返回
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-metrics">
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalPomodoros">0</div>
+                        <div class="metric-label">总番茄钟</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalFocusTime">0分钟</div>
+                        <div class="metric-label">总专注</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="completedTasks">0</div>
+                        <div class="metric-label">完成任务</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="completionRate">0%</div>
+                        <div class="metric-label">完成效率</div>
+                    </div>
+                </div>
+
+                <div class="stats-charts">
+                    <div class="chart-card full-width">
+                        <h3>专注趋势</h3>
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>任务效率分析</h3>
+                        <div class="chart-container">
+                            <canvas id="taskChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>专注时段分布</h3>
+                        <div class="chart-container">
+                            <canvas id="timeDistChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

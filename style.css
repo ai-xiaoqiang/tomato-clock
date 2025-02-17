@@ -42,8 +42,8 @@ h1 {
 /* 进度环样式 */
 .progress-ring {
     position: relative;
-    width: 300px;
-    height: 300px;
+    width: 350px;
+    height: 350px;
     margin: 0 auto 2rem;
 }
 
@@ -194,11 +194,11 @@ h1 {
 
 .app-container {
     display: grid;
-    grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+    grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr) minmax(350px, 1.2fr);
     gap: 2rem;
     margin-top: 2rem;
     align-items: start;
-    max-width: 1200px;
+    max-width: 1600px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -207,6 +207,7 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 400px;
 }
 
 .tasks-section {
@@ -265,14 +266,13 @@ h1 {
 .task-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: space-between;
     padding: 1rem;
     background: white;
     border-radius: 10px;
     margin-bottom: 0.5rem;
-    cursor: move;
     transition: all 0.3s;
-    border: 2px solid transparent;
+    border-left: 4px solid transparent;
 }
 
 .task-item:hover {
@@ -307,13 +307,15 @@ h1 {
 }
 
 .task-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex: 1;
+}
+
+.task-title {
     font-size: 1rem;
     color: #333;
-    text-decoration: none;
-    transition: all 0.3s;
-    text-align: left;
-    padding-left: 0.5rem;
 }
 
 .task-item.completed .task-content {
@@ -333,10 +335,11 @@ h1 {
 }
 
 .task-btn {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border: none;
-    border-radius: 50%;
+    border-radius: 6px;
+    background: #f8f9fa;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -345,21 +348,22 @@ h1 {
 }
 
 .task-btn svg {
-    width: 16px;
-    height: 16px;
-    fill: white;
-}
-
-.edit-btn {
-    background-color: #f1c40f;
-}
-
-.delete-btn {
-    background-color: #e74c3c;
+    width: 18px;
+    height: 18px;
+    fill: #666;
 }
 
 .task-btn:hover {
-    transform: scale(1.1);
+    background: #2ecc71;
+}
+
+.task-btn:hover svg {
+    fill: white;
+}
+
+.task-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* 自定义滚动条 */
@@ -429,4 +433,699 @@ h1 {
     color: #2ecc71;
     margin-left: 0.5rem;
     font-style: italic;
+}
+
+/* 统计概览样式 */
+.stats-overview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.stats-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.chart-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.chart-container {
+    position: relative;
+    height: 250px;
+    margin-top: 1rem;
+}
+
+.chart-card h3 {
+    color: #333;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-card h3 svg {
+    width: 20px;
+    height: 20px;
+    fill: #2ecc71;
+}
+
+.analysis-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.analysis-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 响应式布局 */
+@media (max-width: 1400px) {
+    .app-container {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .stats-section {
+        grid-column: 1 / -1;
+        max-height: none;
+    }
+    
+    .stats-overview {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .app-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .container {
+        padding: 1rem;
+    }
+}
+
+/* 自定义滚动条 */
+.stats-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.stats-section::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.stats-section::-webkit-scrollbar-thumb {
+    background: #2ecc71;
+    border-radius: 3px;
+}
+
+canvas {
+    width: 100% !important;
+    max-height: 300px;
+}
+
+/* 统计控件样式 */
+.stats-title {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.stats-controls {
+    display: flex;
+    gap: 1rem;
+}
+
+.stats-select {
+    padding: 0.5rem 1rem;
+    border: 2px solid #eee;
+    border-radius: 20px;
+    background: white;
+    font-size: 0.9rem;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.stats-select:hover {
+    border-color: #2ecc71;
+}
+
+/* 分析部分样式 */
+.analysis-section {
+    grid-column: 1 / -1;
+    background: linear-gradient(to right, #f8f9fa, #e8f5e9);
+}
+
+.analysis-suggestions h4 {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.analysis-suggestions ul {
+    list-style: none;
+    padding: 0;
+}
+
+.analysis-suggestions li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.analysis-suggestions li::before {
+    content: '💡';
+}
+
+/* 统计区域样式 */
+.stats-section {
+    background: #fff;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+/* 统计头部样式 */
+.stats-header {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 10;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.stats-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stats-title h2 {
+    font-size: 1.25rem;
+    color: #333;
+    margin: 0;
+}
+
+.stats-controls {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.stats-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    background: #f8f9fa;
+    color: #666;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.stats-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.stats-btn:hover {
+    background: #2ecc71;
+    color: white;
+}
+
+/* 指标卡片样式 */
+.stats-metrics {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem;
+}
+
+.metric-card {
+    flex: 1;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+}
+
+.metric-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #2ecc71;
+    margin-bottom: 0.25rem;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* 图表区域样式 */
+.stats-charts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.chart-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.3s;
+}
+
+.chart-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.chart-card h3 {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 250px;
+}
+
+/* 响应式布局 */
+@media (max-width: 1200px) {
+    .stats-metrics {
+        flex-wrap: wrap;
+    }
+    
+    .metric-card {
+        flex: 1 1 calc(50% - 0.5rem);
+    }
+    
+    .stats-charts {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .stats-controls {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    
+    .stats-btn {
+        flex: 1 1 calc(50% - 0.5rem);
+    }
+}
+
+/* 任务专注状态样式 */
+.task-item.focusing {
+    background-color: rgba(46, 204, 113, 0.1);
+    border-left: 4px solid #2ecc71;
+}
+
+.task-item.focusing .task-content::after {
+    content: '专注中';
+    font-size: 0.8rem;
+    color: #2ecc71;
+    margin-left: 0.5rem;
+    padding: 2px 6px;
+    background: rgba(46, 204, 113, 0.1);
+    border-radius: 4px;
+}
+
+/* 任务进度显示 */
+.task-progress {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.task-progress-bar {
+    height: 3px;
+    background: #eee;
+    border-radius: 2px;
+    margin-top: 0.25rem;
+    overflow: hidden;
+}
+
+.task-progress-bar-fill {
+    height: 100%;
+    background: #2ecc71;
+    transition: width 0.3s ease;
+}
+
+/* 任务状态样式 */
+.task-item.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.task-item.focusing {
+    background-color: rgba(46, 204, 113, 0.1);
+    border-left: 4px solid #2ecc71;
+}
+
+.task-status {
+    font-size: 0.8rem;
+    color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+/* 休息提醒样式增强 */
+.break-reminder {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+    z-index: 1000;
+}
+
+.break-reminder.active {
+    opacity: 1;
+    visibility: visible;
+    animation: pulseBackground 2s infinite;
+}
+
+.break-reminder-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+    animation: bounceIn 0.5s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    max-width: 90%;
+    width: 400px;
+}
+
+.break-reminder h3 {
+    color: #2ecc71;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.break-reminder p {
+    color: #666;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.break-time-display {
+    font-size: 1.2rem;
+    color: #333;
+    font-weight: bold;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulseBackground {
+    0% { background: rgba(0, 0, 0, 0.8); }
+    50% { background: rgba(0, 0, 0, 0.9); }
+    100% { background: rgba(0, 0, 0, 0.8); }
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* 通知提示样式 */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #2ecc71;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    animation: slideIn 0.3s ease;
+    z-index: 1000;
+}
+
+.notification.fade-out {
+    animation: slideOut 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* 错误提示样式 */
+.error-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.error-content {
+    padding: 1rem;
+    border-left: 4px solid #e74c3c;
+}
+
+.error-content h3 {
+    color: #e74c3c;
+    margin-bottom: 0.5rem;
+}
+
+/* 主题支持 */
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --text-color: #fff;
+    --primary-color: #2ecc71;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+}
+
+[data-theme="light"] {
+    --bg-color: #f0f2f5;
+    --text-color: #333;
+    --primary-color: #2ecc71;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+}
+
+/* 成功提示样式 */
+.notification.success {
+    background: #2ecc71;
+}
+
+.notification-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.notification-content h4 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.notification-content p {
+    margin: 0;
+}
+
+.notification-content small {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+}
+
+/* 周期完成提示样式 */
+.notification.cycle-complete {
+    background: #3498db;
+}
+
+.notification.next-task {
+    background: #f1c40f;
+}
+
+.notification.all-complete {
+    background: #9b59b6;
+}
+
+/* 强调休息提醒样式 */
+.break-reminder {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        background: rgba(0, 0, 0, 0.5);
+    }
+    50% {
+        background: rgba(0, 0, 0, 0.7);
+    }
+    100% {
+        background: rgba(0, 0, 0, 0.5);
+    }
+}
+
+.break-reminder-content {
+    animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-20px);
+    }
+    60% {
+        transform: translateY(-10px);
+    }
+}
+
+/* 自定义时间设置样式 */
+.custom-time-settings {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.custom-time-input {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.custom-time-input input {
+    width: 80px;
+    padding: 0.5rem;
+    border: 2px solid #ddd;
+    border-radius: 20px;
+    text-align: center;
+}
+
+.custom-time-input button {
+    white-space: nowrap;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 20px;
+    background-color: #3498db;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.custom-time-input button:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+}
+
+/* 时间更新提示样式 */
+.notification.time-update {
+    background-color: #3498db;
+}
+
+/* 时间设置显示样式 */
+.time-settings-display {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    width: 100%;
+    text-align: center;
+}
+
+.time-settings-info {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.time-settings-info span {
+    color: #2ecc71;
+    font-weight: bold;
 } 

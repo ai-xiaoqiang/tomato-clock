@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>番茄时钟 - 数据统计</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="stats.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="stats-page">
+        <header class="stats-header">
+            <div class="header-content">
+                <a href="index.html" class="back-btn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                    </svg>
+                    返回
+                </a>
+                <h1>数据统计</h1>
+                <div class="header-controls">
+                    <select id="timeRange" class="stats-select">
+                        <option value="7">最近7天</option>
+                        <option value="30">最近30天</option>
+                        <option value="90">最近90天</option>
+                        <option value="custom">自定义范围</option>
+                    </select>
+                    <button id="exportStats" class="stats-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                        导出报告
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="stats-container">
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-value" id="totalPomodoros">0</div>
+                    <div class="stat-label">总番茄钟数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-value" id="totalFocusTime">0分钟</div>
+                    <div class="stat-label">总专注时间</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value" id="completedTasks">0</div>
+                    <div class="stat-label">完成任务数</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h2>每日番茄钟完成情况</h2>
+                    <div class="chart-container">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h2>任务效率分析</h2>
+                    <div class="chart-container">
+                        <canvas id="taskChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h2>工作时间分布</h2>
+                    <div class="chart-container">
+                        <canvas id="timeDistChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <h2>效率分析</h2>
+                <div class="analysis-content">
+                    <div class="analysis-item">
+                        <div class="analysis-label">最佳工作时段</div>
+                        <div class="analysis-value" id="bestTimeRange">-</div>
+                    </div>
+                    <div class="analysis-item">
+                        <div class="analysis-label">平均专注时长</div>
+                        <div class="analysis-value" id="avgFocusTime">-</div>
+                    </div>
+                    <div class="analysis-item">
+                        <div class="analysis-label">任务完成率</div>
+                        <div class="analysis-value" id="taskCompletionRate">-</div>
+                    </div>
+                </div>
+                <div class="analysis-suggestions">
+                    <h3>改进建议</h3>
+                    <ul id="suggestions"></ul>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="stats.js"></script>
+</body>
+</html> 

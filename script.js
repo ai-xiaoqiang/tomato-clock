@@ -30,31 +30,105 @@ class PomodoroTimer {
 
         // 时间预设按钮
         document.querySelectorAll('.time-preset').forEach(btn => {
-            btn.addEventListener('click', () => this.setPresetTime(parseInt(btn.dataset.time)));
+            btn.addEventListener('click', () => {
+                if (this.isRunning && !confirm('更改时间将重置当前任务，是否继续？')) {
+                    return;
+                }
+                this.setPresetTime(parseInt(btn.dataset.time));
+            });
         });
 
-        // 自定义时间
-        document.getElementById('setCustomTime').addEventListener('click', () => {
-            const input = document.getElementById('customTime');
-            const time = parseInt(input.value);
-            if (time && time > 0 && time <= 120) {
-                this.setPresetTime(time);
-                input.value = '';
-            } else {
-                alert('请输入1-120之间的数字');
-            }
-        });
+        // 移除旧的自定义时间事件监听
+        document.getElementById('setCustomTime')?.removeEventListener('click', null);
+
+        // 添加自定义时间设置按钮事件
+        const workTimeBtn = document.getElementById('setCustomWorkTime');
+        const breakTimeBtn = document.getElementById('setCustomBreakTime');
+        const workTimeInput = document.getElementById('customWorkTime');
+        const breakTimeInput = document.getElementById('customBreakTime');
+
+        if (workTimeBtn && workTimeInput) {
+            workTimeBtn.addEventListener('click', () => {
+                const time = parseInt(workTimeInput.value);
+                if (this.validateCustomTime(time)) {
+                    this.setCustomWorkTime(time);
+                    workTimeInput.value = '';
+                }
+            });
+
+            // 添加回车键支持
+            workTimeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    workTimeBtn.click();
+                }
+            });
+        }
+
+        if (breakTimeBtn && breakTimeInput) {
+            breakTimeBtn.addEventListener('click', () => {
+                const time = parseInt(breakTimeInput.value);
+                if (this.validateCustomTime(time, true)) {
+                    this.setCustomBreakTime(time);
+                    breakTimeInput.value = '';
+                }
+            });
+
+            // 添加回车键支持
+            breakTimeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    breakTimeBtn.click();
+                }
+            });
+        }
 
         // 初始化显示
         this.updateDisplay();
 
         // 添加任务完成回调
         this.onComplete = null;
+
+        // 记录开始时间
+        this.startedAt = null;
+
+        // 添加当前任务引用
+        this.currentTask = null;
+
+        // 添加休息提醒弹窗
+        this.createBreakReminder();
+
+        // 使用 requestAnimationFrame 优化动画
+        this.animationFrameId = null;
+        this.lastTimestamp = 0;
+
+        // 添加任务周期标记
+        this.cycleCompleted = false;
+
+        // 添加时间设置显示元素引用
+        this.currentWorkTimeDisplay = document.getElementById('currentWorkTime');
+        this.currentBreakTimeDisplay = document.getElementById('currentBreakTime');
+
+        // 初始化显示当前设置
+        this.updateTimeSettingsDisplay();
+    }
+
+    validateCustomTime(time, isBreakTime = false) {
+        const minTime = isBreakTime ? 1 : 5;
+        const maxTime = isBreakTime ? 30 : 120;
+        
+        if (!time || isNaN(time) || time < minTime || time > maxTime) {
+            alert(`请输入${minTime}-${maxTime}之间的数字`);
+            return false;
+        }
+        return true;
     }
 
     setPresetTime(minutes) {
         if (this.isRunning) {
-            this.pause();
+            this.reset();
+            // 重置任务状态
+            if (taskManager) {
+                taskManager.endTaskFocus();
+            }
         }
         
         // 更新预设按钮状态
@@ -68,6 +142,9 @@ class PomodoroTimer {
         this.isWorkTime = true;
         this.updateDisplay();
         this.updateProgressRing();
+        
+        // 更新显示的时间设置
+        this.updateTimeSettingsDisplay();
     }
 
     start() {
@@ -81,23 +158,19 @@ class PomodoroTimer {
         
         this.isRunning = true;
         this.startBtn.disabled = true;
+        this.startedAt = Date.now();
+        
+        // 更新任务状态为专注中
+        taskManager.startTaskFocus(taskManager.currentTaskId);
         
         this.timerId = setInterval(() => {
             this.timeLeft--;
             
             if (this.timeLeft <= 0) {
+                clearInterval(this.timerId);
                 this.alertSound.play();
-                this.isWorkTime = !this.isWorkTime;
-                this.timeLeft = this.isWorkTime ? this.workTime : this.breakTime;
-                this.totalTime = this.timeLeft;
-                this.updateDisplay();
-                this.updateTheme();
-                this.pause();
-
-                // 工作时间结束时触发回调
-                if (!this.isWorkTime && this.onComplete) {
-                    this.onComplete();
-                }
+                // 工作时间结束，调用完成方法
+                this.completePomodoro();
                 return;
             }
             
@@ -117,9 +190,12 @@ class PomodoroTimer {
         this.isWorkTime = true;
         this.timeLeft = this.workTime;
         this.totalTime = this.workTime;
+        this.startedAt = null;
+        this.isRunning = false;
         this.updateDisplay();
         this.updateProgressRing();
         this.updateTheme();
+        this.hideBreakReminder();
     }
 
     updateDisplay() {
@@ -129,16 +205,274 @@ class PomodoroTimer {
         this.statusDisplay.textContent = this.isWorkTime ? '工作时间' : '休息时间';
     }
 
-    updateProgressRing() {
+    updateProgressRing(timestamp) {
+        if (!this.lastTimestamp) this.lastTimestamp = timestamp;
+        const elapsed = timestamp - this.lastTimestamp;
+        
+        // 限制更新频率
+        if (elapsed < 16) { // 约60fps
+            this.animationFrameId = requestAnimationFrame(this.updateProgressRing.bind(this));
+            return;
+        }
+
         const circumference = 2 * Math.PI * 140;
         const progress = this.timeLeft / this.totalTime;
         const offset = circumference * (1 - progress);
         this.progressRing.style.strokeDashoffset = offset;
+
+        this.lastTimestamp = timestamp;
+        this.animationFrameId = requestAnimationFrame(this.updateProgressRing.bind(this));
     }
 
     updateTheme() {
         document.body.classList.toggle('work-mode', this.isWorkTime);
         document.body.classList.toggle('break-mode', !this.isWorkTime);
+    }
+
+    completePomodoro() {
+        if (this.startedAt && this.isWorkTime) {
+            // 1. 工作时间结束
+            const duration = Math.round((Date.now() - this.startedAt) / 1000);
+            
+            // 2. 更新任务状态和统计
+            if (taskManager.currentTaskId) {
+                // 先记录统计数据
+                statsManager.recordPomodoro(taskManager.currentTaskId, duration);
+                
+                // 更新任务状态为完成
+                const task = taskManager.tasks.find(t => t.id === taskManager.currentTaskId);
+                if (task) {
+                    taskManager.completeTask(taskManager.currentTaskId);
+                    Logger.log('Task completed:', task.title);
+                }
+            }
+            
+            // 3. 开始休息时间
+            this.startBreakTime();
+        } else if (!this.isWorkTime && this.timeLeft <= 0) {
+            this.completeBreakTime();
+        }
+    }
+
+    startBreakTime() {
+        // 暂停当前计时器
+        clearInterval(this.timerId);
+        
+        // 切换到休息状态
+        this.isWorkTime = false;
+        this.timeLeft = this.breakTime;
+        this.totalTime = this.breakTime;
+        this.startedAt = Date.now(); // 设置新的开始时间
+        
+        // 更新显示
+        this.updateDisplay();
+        this.updateTheme();
+        this.updateProgressRing();
+        
+        // 显示强提醒
+        this.showBreakReminder();
+        this.playAlertSound();
+        
+        // 启动休息时间计时器
+        this.isRunning = true;
+        this.timerId = setInterval(() => {
+            this.timeLeft--;
+            
+            if (this.timeLeft <= 0) {
+                clearInterval(this.timerId);
+                this.completePomodoro(); // 休息时间结束时也调用completePomodoro
+                return;
+            }
+            
+            this.updateDisplay();
+            this.updateProgressRing();
+        }, 1000);
+    }
+
+    completeBreakTime() {
+        this.pause();
+        this.reset();
+        this.hideBreakReminder();
+        
+        // 切换到下一个任务
+        taskManager.switchToNextTask();
+        
+        // 显示周期完成提示
+        this.showCycleCompleteNotification();
+    }
+
+    showCycleCompleteNotification() {
+        const notification = document.createElement('div');
+        notification.className = 'notification cycle-complete';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <h4>🎯 任务周期完成</h4>
+                <p>休息结束，可以开始新的专注了！</p>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 播放提示音
+        this.alertSound.play();
+        
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    createBreakReminder() {
+        const reminder = document.createElement('div');
+        reminder.className = 'break-reminder';
+        reminder.innerHTML = `
+            <div class="break-reminder-content">
+                <h3>🎉 恭喜完成一个番茄钟！</h3>
+                <p>现在是休息时间，请放松一下吧！</p>
+                <div class="break-time-display"></div>
+            </div>
+        `;
+        document.body.appendChild(reminder);
+        this.breakReminder = reminder;
+        this.breakTimeDisplay = reminder.querySelector('.break-time-display');
+    }
+
+    showBreakReminder() {
+        // 创建休息提醒弹窗
+        const reminder = document.createElement('div');
+        reminder.className = 'break-reminder active';
+        reminder.innerHTML = `
+            <div class="break-reminder-content">
+                <h3>🎉 恭喜完成一个番茄钟！</h3>
+                <p>现在是休息时间，请放松一下吧！</p>
+                <div class="break-time-display"></div>
+            </div>
+        `;
+        
+        document.body.appendChild(reminder);
+        
+        // 播放提示音
+        this.playAlertSound();
+        
+        // 更新休息时间显示
+        const timeDisplay = reminder.querySelector('.break-time-display');
+        const updateTime = () => {
+            const minutes = Math.floor(this.timeLeft / 60);
+            const seconds = this.timeLeft % 60;
+            timeDisplay.textContent = 
+                `休息时间还剩：${minutes}:${seconds.toString().padStart(2, '0')}`;
+        };
+        
+        updateTime();
+        this.breakUpdateTimer = setInterval(updateTime, 1000);
+    }
+
+    playAlertSound() {
+        // 播放提示音
+        this.alertSound.currentTime = 0;
+        this.alertSound.play().catch(error => {
+            console.warn('Failed to play alert sound:', error);
+        });
+        
+        // 震动提醒（如果设备支持）
+        if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]);
+        }
+    }
+
+    hideBreakReminder() {
+        const reminder = document.querySelector('.break-reminder');
+        if (reminder) {
+            reminder.classList.remove('active');
+            setTimeout(() => {
+                reminder.remove();
+            }, 300);
+            clearInterval(this.breakUpdateTimer);
+        }
+    }
+
+    // 防抖处理
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    setCustomWorkTime(minutes) {
+        if (this.isRunning && !confirm('更改时间将重置当前任务，是否继续？')) {
+            return;
+        }
+        
+        this.workTime = minutes * 60;
+        this.timeLeft = this.workTime;
+        this.totalTime = this.workTime;
+        this.reset();
+        
+        // 更新预设按钮状态
+        document.querySelectorAll('.time-preset').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // 更新显示的时间设置
+        this.updateTimeSettingsDisplay();
+        
+        // 显示提示
+        this.showTimeUpdateNotification('工作时间已更新为 ' + minutes + ' 分钟');
+    }
+
+    setCustomBreakTime(minutes) {
+        this.breakTime = minutes * 60;
+        
+        // 如果当前是休息时间，则立即应用新的时间
+        if (!this.isWorkTime) {
+            if (this.isRunning && !confirm('立即应用新的休息时间？')) {
+                return;
+            }
+            this.timeLeft = this.breakTime;
+            this.totalTime = this.breakTime;
+            this.updateDisplay();
+            this.updateProgressRing();
+        }
+        
+        // 更新显示的时间设置
+        this.updateTimeSettingsDisplay();
+        
+        // 显示提示
+        this.showTimeUpdateNotification('休息时间已更新为 ' + minutes + ' 分钟');
+    }
+
+    showTimeUpdateNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification time-update';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <h4>⚡ 时间设置已更新</h4>
+                <p>${message}</p>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 300);
+        }, 2000);
+    }
+
+    updateTimeSettingsDisplay() {
+        // 更新显示的时间设置
+        if (this.currentWorkTimeDisplay) {
+            this.currentWorkTimeDisplay.textContent = `${Math.floor(this.workTime / 60)}分钟`;
+        }
+        if (this.currentBreakTimeDisplay) {
+            this.currentBreakTimeDisplay.textContent = `${Math.floor(this.breakTime / 60)}分钟`;
+        }
     }
 }
 
@@ -205,6 +539,12 @@ class TaskManager {
 
         // 加载保存的任务
         this.loadTasks();
+
+        // 添加任务进度追踪
+        this.taskProgress = new Map();
+
+        // 添加任务状态
+        this.isTaskFocusing = false;
     }
 
     loadTasks() {
@@ -224,10 +564,64 @@ class TaskManager {
 
     renderTasks() {
         this.tasksList.innerHTML = '';
-        this.tasks.sort((a, b) => a.order - b.order).forEach(task => {
-            const taskElement = this.createTaskElement(task);
+        this.tasks.forEach(task => {
+            const taskElement = document.createElement('div');
+            taskElement.className = 'task-item';
+            taskElement.dataset.id = task.id;
+            
+            // 添加任务状态类
+            if (task.completed) {
+                taskElement.classList.add('completed');
+            } else if (task.id === this.currentTaskId && this.isTaskFocusing) {
+                taskElement.classList.add('focusing');
+            }
+
+            // 更新任务显示
+            taskElement.innerHTML = `
+                <div class="task-content">
+                    <input type="checkbox" 
+                           ${task.completed ? 'checked' : ''} 
+                           ${this.isTaskFocusing ? 'disabled' : ''}>
+                    <span class="task-title">${task.title}</span>
+                    ${!task.completed && task.id === this.currentTaskId && this.isTaskFocusing ? 
+                      '<span class="task-status">专注中</span>' : ''}
+                </div>
+                <div class="task-actions">
+                    ${!task.completed ? `
+                        <button class="task-btn focus-btn" 
+                                data-action="focus" 
+                                ${task.id === this.currentTaskId && this.isTaskFocusing ? 'disabled' : ''}>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 20c4.4 0 8-3.6 8-8s-3.6-8-8-8-8 3.6-8 8 3.6 8 8 8zm0-18c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2zm-1 5v6l5 3-1 2-6-3.5V7h2z"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                    <button class="task-btn delete-btn" 
+                            data-action="delete" 
+                            ${this.isTaskFocusing ? 'disabled' : ''}>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            // 添加事件监听
+            const checkbox = taskElement.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', () => this.toggleTask(task.id));
+
+            const focusBtn = taskElement.querySelector('[data-action="focus"]');
+            if (focusBtn) {
+                focusBtn.addEventListener('click', () => this.focusTask(task.id));
+            }
+
+            const deleteBtn = taskElement.querySelector('[data-action="delete"]');
+            deleteBtn.addEventListener('click', () => this.deleteTask(task.id));
+
             this.tasksList.appendChild(taskElement);
         });
+
+        Logger.log('Tasks rendered:', this.tasks);
     }
 
     createTaskElement(task) {
@@ -283,6 +677,9 @@ class TaskManager {
         this.saveTasks();
         this.renderTasks();
         this.newTaskInput.value = '';
+        
+        // 添加成功提示
+        this.showNotification('任务添加成功！');
     }
 
     editTask(taskId) {
@@ -298,7 +695,9 @@ class TaskManager {
     }
 
     deleteTask(taskId) {
-        if (!confirm('确定要删除这个任务吗？')) return;
+        // 删除任务时只确认一次
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task) return;
         
         // 如果删除的是当前专注的任务，重置计时器
         if (taskId === this.currentTaskId) {
@@ -306,7 +705,7 @@ class TaskManager {
             this.timer.reset();
         }
         
-        this.tasks = this.tasks.filter(task => task.id !== taskId);
+        this.tasks = this.tasks.filter(t => t.id !== taskId);
         this.saveTasks();
         this.renderTasks();
     }
@@ -318,19 +717,14 @@ class TaskManager {
         task.completed = !task.completed;
         
         if (task.completed) {
-            // 获取任务元素的位置来触发礼花效果
-            const taskElement = this.tasksList.querySelector(`[data-id="${taskId}"]`);
-            const rect = taskElement.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            
-            this.confetti.start(x, y);
-            
-            // 如果是当前专注的任务，重置计时器
+            task.completedAt = Date.now();
+            // 如果是当前专注的任务，重置状态
             if (taskId === this.currentTaskId) {
+                this.isTaskFocusing = false;
                 this.currentTaskId = null;
-                this.timer.reset();
             }
+            // 记录任务完成统计
+            statsManager.recordTaskCompletion(task);
         }
 
         this.saveTasks();
@@ -392,6 +786,178 @@ class TaskManager {
         
         // 自动开始计时
         this.timer.start();
+    }
+
+    updateTaskStatus(taskId, status) {
+        const taskElement = this.tasksList.querySelector(`[data-id="${taskId}"]`);
+        if (taskElement) {
+            // 更新任务显示状态
+            taskElement.dataset.status = status;
+            if (status === 'focus') {
+                taskElement.classList.add('focusing');
+            } else {
+                taskElement.classList.remove('focusing');
+            }
+        }
+    }
+
+    updateTaskProgress(taskId, duration) {
+        if (!this.taskProgress.has(taskId)) {
+            this.taskProgress.set(taskId, {
+                totalTime: 0,
+                pomodoroCount: 0
+            });
+        }
+        
+        const progress = this.taskProgress.get(taskId);
+        progress.totalTime += duration;
+        progress.pomodoroCount++;
+        
+        // 更新统计数据
+        statsManager.updateTaskStats(taskId, progress);
+    }
+
+    selectTask(taskId) {
+        if (this.isTaskFocusing) return; // 如果有任务在专注中，禁止选择其他任务
+        
+        this.currentTaskId = taskId;
+        this.renderTasks();
+    }
+
+    startTaskFocus(taskId) {
+        this.isTaskFocusing = true;
+        this.currentTaskId = taskId;
+        this.renderTasks();
+    }
+
+    endTaskFocus() {
+        this.isTaskFocusing = false;
+        this.currentTaskId = null;
+        this.renderTasks();
+    }
+
+    completeTask(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task) {
+            Logger.warn('Task not found:', taskId);
+            return;
+        }
+
+        Logger.log('Completing task:', task.title);
+
+        // 1. 更新任务状态
+        task.completed = true;
+        task.completedAt = Date.now();
+        
+        // 2. 重置专注状态
+        this.isTaskFocusing = false;
+        this.currentTaskId = null;
+        
+        // 3. 记录任务统计
+        statsManager.recordTaskCompletion(task);
+        
+        // 4. 保存并更新显示
+        this.saveTasks();
+        this.renderTasks();
+        
+        // 5. 显示完成提示
+        this.showTaskCompleteNotification(task);
+    }
+
+    showTaskCompleteNotification(task) {
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <h4>🎉 任务完成</h4>
+                <p>${task.title}</p>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // 添加一个简单的提示方法
+    showNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // 2秒后自动消失
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, 2000);
+    }
+
+    switchToNextTask() {
+        // 获取所有未完成的任务
+        const uncompletedTasks = this.tasks.filter(task => !task.completed);
+        
+        if (uncompletedTasks.length === 0) {
+            // 如果没有未完成的任务，显示提示
+            this.showAllTasksCompleteNotification();
+            return;
+        }
+        
+        // 找到当前任务的索引
+        const currentIndex = uncompletedTasks.findIndex(task => task.id === this.currentTaskId);
+        
+        // 获取下一个任务
+        const nextTask = uncompletedTasks[currentIndex + 1] || uncompletedTasks[0];
+        
+        // 更新当前任务
+        this.currentTaskId = nextTask.id;
+        this.isTaskFocusing = false; // 重置专注状态
+        
+        // 更新显示
+        this.renderTasks();
+        
+        // 显示下一个任务提示
+        this.showNextTaskNotification(nextTask);
+    }
+
+    showNextTaskNotification(task) {
+        const notification = document.createElement('div');
+        notification.className = 'notification next-task';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <h4>⏰ 下一个任务</h4>
+                <p>${task.title}</p>
+                <small>点击开始按钮开始专注</small>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 3000);
+        }, 3000);
+    }
+
+    showAllTasksCompleteNotification() {
+        const notification = document.createElement('div');
+        notification.className = 'notification all-complete';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <h4>🎉 太棒了！</h4>
+                <p>所有任务都已完成</p>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 3000);
+        }, 3000);
     }
 }
 
@@ -485,12 +1051,569 @@ class ConfettiEffect {
     }
 }
 
+class StatsManager {
+    constructor() {
+        // 初始化数据结构
+        this.stats = {
+            daily: {},      // 每日统计
+            tasks: {},      // 任务统计
+            timeDistribution: {} // 时间分布
+        };
+        
+        // 初始化图表容器
+        this.charts = {};
+
+        // 加载保存的统计数据
+        this.loadStats();
+        
+        // 设置图表主题
+        this.chartTheme = {
+            colors: {
+                primary: {
+                    base: '#2ecc71',
+                    light: 'rgba(46, 204, 113, 0.2)',
+                    dark: '#27ae60'
+                },
+                secondary: {
+                    base: '#3498db',
+                    light: 'rgba(52, 152, 219, 0.2)',
+                    dark: '#2980b9'
+                },
+                accent: {
+                    base: '#e74c3c',
+                    light: 'rgba(231, 76, 60, 0.2)',
+                    dark: '#c0392b'
+                }
+            }
+        };
+
+        // 初始化图表
+        this.initCharts();
+        
+        // 更新显示
+        this.updateOverview();
+        this.updateCharts();
+
+        // 添加任务完成统计
+        this.taskCompletionStats = {
+            daily: {},
+            total: {
+                completed: 0,
+                totalTime: 0,
+                avgTime: 0
+            }
+        };
+    }
+
+    loadStats() {
+        try {
+            const savedStats = localStorage.getItem('pomodoroStats');
+            if (savedStats) {
+                this.stats = JSON.parse(savedStats);
+            }
+            console.log('Loaded stats:', this.stats); // 调试用
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            this.stats = {
+                daily: {},
+                tasks: {},
+                timeDistribution: {}
+            };
+        }
+    }
+
+    saveStats() {
+        localStorage.setItem('pomodoroStats', JSON.stringify(this.stats));
+    }
+
+    recordPomodoro(taskId, duration) {
+        const today = new Date().toISOString().split('T')[0];
+        Logger.log('Recording pomodoro:', { taskId, duration, today });
+
+        // 更新每日统计
+        if (!this.stats.daily[today]) {
+            this.stats.daily[today] = {
+                pomodoroCount: 0,
+                totalFocusTime: 0,
+                completedTasks: 0
+            };
+        }
+        
+        this.stats.daily[today].pomodoroCount++;
+        this.stats.daily[today].totalFocusTime += Math.round(duration / 60);
+
+        // 更新任务统计
+        if (!this.stats.tasks[taskId]) {
+            this.stats.tasks[taskId] = {
+                pomodoroCount: 0,
+                totalTime: 0
+            };
+        }
+        
+        this.stats.tasks[taskId].pomodoroCount++;
+        this.stats.tasks[taskId].totalTime += duration;
+
+        this.saveStats();
+        this.updateOverview();
+        this.updateCharts();
+    }
+
+    updateOverview() {
+        const today = new Date().toISOString().split('T')[0];
+        const todayStats = this.stats.daily[today] || {
+            pomodoroCount: 0,
+            totalFocusTime: 0,
+            completedTasks: 0
+        };
+
+        console.log('Updating overview with stats:', todayStats); // 调试用
+
+        // 更新统计卡片显示
+        const elements = {
+            totalPomodoros: todayStats.pomodoroCount,
+            totalFocusTime: this.formatTime(todayStats.totalFocusTime),
+            completedTasks: todayStats.completedTasks,
+            completionRate: this.calculateCompletionRate(todayStats)
+        };
+
+        // 更新DOM
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            } else {
+                console.warn(`Element with id ${id} not found`); // 调试用
+            }
+        });
+    }
+
+    calculateCompletionRate(todayStats) {
+        const totalTasks = taskManager.tasks.length;
+        if (totalTasks === 0) return '0%';
+        
+        const rate = Math.round((todayStats.completedTasks / totalTasks) * 100);
+        return `${rate}%`;
+    }
+
+    formatTime(minutes) {
+        if (minutes < 60) return `${minutes}分钟`;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
+    }
+
+    initCharts() {
+        // 专注趋势图表
+        this.charts.trend = new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '番茄钟数量',
+                    data: [],
+                    borderColor: this.chartTheme.colors.primary.base,
+                    backgroundColor: this.chartTheme.colors.primary.light,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: '专注时间(小时)',
+                    data: [],
+                    borderColor: this.chartTheme.colors.secondary.base,
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // 任务效率分析
+        this.charts.tasks = new Chart(document.getElementById('taskChart'), {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '专注时间(分钟)',
+                    data: [],
+                    backgroundColor: this.chartTheme.colors.secondary.light,
+                    borderColor: this.chartTheme.colors.secondary.base,
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    hoverBackgroundColor: this.chartTheme.colors.secondary.base
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.raw;
+                                return `专注时间: ${value} 分钟`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // 时间分布图表
+        this.charts.timeDist = new Chart(document.getElementById('timeDistChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '番茄钟数量',
+                    data: [],
+                    fill: true,
+                    backgroundColor: this.chartTheme.colors.accent.light,
+                    borderColor: this.chartTheme.colors.accent.base,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.raw;
+                                return `完成 ${value} 个番茄钟`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    }
+
+    updateCharts() {
+        // 1. 更新趋势图表
+        const trendData = this.getTrendData();
+        this.updateTrendChart(trendData);
+
+        // 2. 更新任务效率图表
+        const taskData = this.getTaskData();
+        this.updateTaskChart(taskData);
+
+        // 3. 更新时间分布图表
+        const timeData = this.getTimeDistributionData();
+        this.updateTimeDistChart(timeData);
+    }
+
+    getTrendData() {
+        return Object.entries(this.stats.daily)
+            .sort(([a], [b]) => new Date(a) - new Date(b))
+            .slice(-7) // 最近7天
+            .map(([date, stats]) => ({
+                date: date.split('-').slice(1).join('/'),
+                count: stats.pomodoroCount,
+                time: Math.round(stats.totalFocusTime / 60 * 10) / 10 // 转换为小时，保留一位小数
+            }));
+    }
+
+    getTaskData() {
+        return Object.entries(this.stats.tasks)
+            .map(([taskId, stats]) => {
+                const task = taskManager.tasks.find(t => t.id === taskId);
+                return {
+                    title: task ? task.title : '已删除的任务',
+                    time: Math.round(stats.totalTime / 60), // 转换为分钟
+                    count: stats.pomodoroCount
+                };
+            })
+            .sort((a, b) => b.time - a.time)
+            .slice(0, 5); // 只显示前5个任务
+    }
+
+    getTimeDistributionData() {
+        return Array.from({ length: 24 }, (_, i) => {
+            const hour = i.toString().padStart(2, '0');
+            const timeKey = `${hour}:00`;
+            return {
+                hour: timeKey,
+                count: (this.stats.timeDistribution[timeKey] || {}).count || 0
+            };
+        });
+    }
+
+    updateTrendChart(data) {
+        this.charts.trend.data.labels = data.map(d => d.date);
+        this.charts.trend.data.datasets[0].data = data.map(d => d.count);
+        this.charts.trend.data.datasets[1].data = data.map(d => d.time);
+        this.charts.trend.update();
+    }
+
+    updateTaskChart(data) {
+        this.charts.tasks.data.labels = data.map(d => d.title);
+        this.charts.tasks.data.datasets[0].data = data.map(d => d.time);
+        this.charts.tasks.update();
+    }
+
+    updateTimeDistChart(data) {
+        this.charts.timeDist.data.labels = data.map(d => d.hour);
+        this.charts.timeDist.data.datasets[0].data = data.map(d => d.count);
+        this.charts.timeDist.update();
+    }
+
+    updateTaskStats(taskId, progress) {
+        this.taskStats.set(taskId, progress);
+        this.updateCharts();
+    }
+
+    recordTaskCompletion(task) {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // 1. 更新每日统计
+        if (!this.stats.daily[today]) {
+            this.stats.daily[today] = {
+                pomodoroCount: 0,
+                totalFocusTime: 0,
+                completedTasks: 0
+            };
+        }
+        this.stats.daily[today].completedTasks++;
+
+        // 2. 更新任务统计
+        if (!this.stats.tasks[task.id]) {
+            this.stats.tasks[task.id] = {
+                pomodoroCount: 0,
+                totalTime: 0,
+                completedAt: Date.now()
+            };
+        }
+        
+        // 3. 更新时间分布
+        const hour = new Date().getHours();
+        const timeKey = `${hour.toString().padStart(2, '0')}:00`;
+        if (!this.stats.timeDistribution[timeKey]) {
+            this.stats.timeDistribution[timeKey] = {
+                count: 0,
+                totalTime: 0
+            };
+        }
+        
+        // 4. 保存并更新显示
+        this.saveStats();
+        this.updateOverview();
+        this.updateCharts();
+        
+        // 5. 显示完成提示
+        this.showCompletionNotification(task);
+    }
+
+    showCompletionNotification(task) {
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <h4>🎉 任务完成</h4>
+                <p>${task.title}</p>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+}
+
+class AppState {
+    constructor() {
+        this.state = {
+            currentTask: null,
+            isFocusing: false,
+            isBreakTime: false,
+            stats: {
+                daily: {},
+                tasks: {},
+                timeDistribution: {}
+            }
+        };
+        
+        // 加载保存的状态
+        this.loadState();
+    }
+
+    setState(newState) {
+        this.state = { ...this.state, ...newState };
+        this.saveState();
+        this.notifyListeners();
+    }
+
+    loadState() {
+        try {
+            const savedState = localStorage.getItem('pomodoroState');
+            if (savedState) {
+                this.state = JSON.parse(savedState);
+            }
+        } catch (error) {
+            console.error('Error loading state:', error);
+        }
+    }
+
+    saveState() {
+        try {
+            localStorage.setItem('pomodoroState', JSON.stringify(this.state));
+        } catch (error) {
+            console.error('Error saving state:', error);
+        }
+    }
+}
+
+class Logger {
+    static log(message, data = {}) {
+        console.log(`[Pomodoro] ${message}`, data);
+    }
+
+    static error(message, error) {
+        console.error(`[Pomodoro Error] ${message}`, error);
+        // 可以添加错误上报逻辑
+    }
+
+    static warn(message) {
+        console.warn(`[Pomodoro Warning] ${message}`);
+    }
+}
+
+class ErrorBoundary {
+    static handleError(error, context) {
+        Logger.error(`Error in ${context}:`, error);
+        // 显示用户友好的错误提示
+        this.showErrorNotification(error.message);
+    }
+
+    static showErrorNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'error-notification';
+        notification.innerHTML = `
+            <div class="error-content">
+                <h3>出错了</h3>
+                <p>${message}</p>
+                <button>知道了</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        notification.querySelector('button').onclick = () => {
+            notification.remove();
+        };
+        
+        setTimeout(() => notification.remove(), 5000);
+    }
+}
+
+class ShortcutManager {
+    constructor() {
+        this.shortcuts = {
+            'Space': () => timer.toggleTimer(),
+            'KeyR': () => timer.reset(),
+            'KeyN': () => taskManager.showAddTaskDialog(),
+            'Escape': () => this.handleEscape()
+        };
+        
+        this.init();
+    }
+
+    init() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            
+            const handler = this.shortcuts[e.code];
+            if (handler) {
+                e.preventDefault();
+                handler();
+            }
+        });
+    }
+
+    handleEscape() {
+        // 关闭所有弹窗
+        document.querySelectorAll('.modal.active').forEach(modal => {
+            modal.classList.remove('active');
+        });
+    }
+}
+
 // 2. 然后按正确顺序创建实例
 const timer = new PomodoroTimer();
 const taskManager = new TaskManager(timer);
+const statsManager = new StatsManager();
 
 // 3. 最后设置回调
 timer.onComplete = () => {
+    timer.completePomodoro(); // 记录番茄钟完成
     if (taskManager.currentTaskId) {
         const task = taskManager.tasks.find(t => t.id === taskManager.currentTaskId);
         if (task && !task.completed) {
@@ -499,4 +1622,28 @@ timer.onComplete = () => {
             }
         }
     }
-}; 
+};
+
+// 在创建实例后设置事件绑定
+document.addEventListener('DOMContentLoaded', () => {
+    // 任务列表点击事件委托
+    document.getElementById('tasksList').addEventListener('click', (e) => {
+        const target = e.target;
+        const taskItem = target.closest('.task-item');
+        if (!taskItem) return;
+
+        const taskId = taskItem.dataset.id;
+        const action = target.closest('[data-action]')?.dataset.action;
+
+        if (action) {
+            switch (action) {
+                case 'focus':
+                    taskManager.focusTask(taskId);
+                    break;
+                case 'delete':
+                    taskManager.deleteTask(taskId);
+                    break;
+            }
+        }
+    });
+}); 

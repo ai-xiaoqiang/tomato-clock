@@ -10,32 +10,33 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #f0f2f5;
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); /* 渐变绿色背景 */
     transition: background-color 0.5s;
 }
 
 body.work-mode {
-    background-color: #f0f2f5;
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
 }
 
 body.break-mode {
-    background-color: #e8f5e9;
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
 }
 
 .container {
     text-align: center;
-    background-color: white;
-    padding: 2rem;
+    background-color: rgba(255, 255, 255, 0.95); /* 半透明白色背景 */
+    padding: 3rem;
     border-radius: 20px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px); /* 背景模糊效果 */
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+    max-width: 1600px;
+    margin: 2rem auto;
 }
 
 h1 {
     color: #333;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
     font-size: 2rem;
 }
 
@@ -92,15 +93,12 @@ h1 {
 
 /* 时间设置样式 */
 .time-settings {
-    margin-bottom: 2rem;
+    width: 100%;
+    margin: 2rem 0;
 }
 
 .preset-times {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
 }
 
 .time-preset {
@@ -194,32 +192,41 @@ h1 {
 
 .app-container {
     display: grid;
-    grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr) minmax(350px, 1.2fr);
-    gap: 2rem;
+    grid-template-columns: 450px 400px 500px;
+    gap: 3rem;
     margin-top: 2rem;
     align-items: start;
     max-width: 1600px;
     margin-left: auto;
     margin-right: auto;
+    padding: 0 2rem;
 }
 
 .timer-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 400px;
+    width: 450px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    z-index: 1;
 }
 
 .tasks-section {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 15px;
-    padding: 1.5rem;
-    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 400px;
-    max-height: 600px;
+    min-height: 500px;
+    max-height: 700px;
+    width: 400px;
 }
 
 .tasks-header {
@@ -261,6 +268,8 @@ h1 {
     flex: 1;
     overflow-y: auto;
     padding-right: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: #ddd transparent;
 }
 
 .task-item {
@@ -268,14 +277,16 @@ h1 {
     align-items: center;
     justify-content: space-between;
     padding: 1rem;
-    background: white;
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 10px;
     margin-bottom: 0.5rem;
     transition: all 0.3s;
     border-left: 4px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .task-item:hover {
+    background: rgba(255, 255, 255, 1);
     border-color: #2ecc71;
     transform: translateX(5px);
 }
@@ -372,12 +383,11 @@ h1 {
 }
 
 .tasks-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .tasks-list::-webkit-scrollbar-thumb {
-    background: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.5);
     border-radius: 3px;
 }
 
@@ -467,10 +477,10 @@ h1 {
 }
 
 .chart-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.9);
     border-radius: 12px;
     padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
@@ -623,10 +633,12 @@ canvas {
 
 /* 统计区域样式 */
 .stats-section {
-    background: #fff;
-    border-radius: 15px;
-    padding: 1.5rem;
-    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    width: 500px;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -688,60 +700,48 @@ canvas {
 
 /* 指标卡片样式 */
 .stats-metrics {
-    display: flex;
-    gap: 1rem;
-    padding: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .metric-card {
-    flex: 1;
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 1.5rem;
+    border-radius: 15px;
     text-align: center;
-    transition: transform 0.3s;
-}
-
-.metric-card:hover {
-    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .metric-value {
-    font-size: 1.1rem;
+    font-size: 2rem;
     font-weight: bold;
     color: #2ecc71;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .metric-label {
-    font-size: 0.8rem;
     color: #666;
+    font-size: 1rem;
 }
 
 /* 图表区域样式 */
 .stats-charts {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .chart-card {
-    background: #fff;
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
     padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    transition: transform 0.3s;
-}
-
-.chart-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 15px;
 }
 
 .chart-card h3 {
-    font-size: 1rem;
-    color: #333;
     margin-bottom: 1rem;
+    color: #333;
+    font-size: 1.2rem;
 }
 
 .chart-container {
@@ -838,79 +838,57 @@ canvas {
     margin-left: 8px;
 }
 
-/* 休息提醒样式增强 */
+/* 休息提醒弹框样式 */
 .break-reminder {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
     justify-content: center;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s;
+    align-items: center;
     z-index: 1000;
-}
-
-.break-reminder.active {
-    opacity: 1;
-    visibility: visible;
-    animation: pulseBackground 2s infinite;
 }
 
 .break-reminder-content {
     background: white;
     padding: 2rem;
-    border-radius: 15px;
+    border-radius: 20px;
     text-align: center;
-    animation: bounceIn 0.5s ease;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    max-width: 90%;
-    width: 400px;
+    animation: bounce 0.5s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .break-reminder h3 {
     color: #2ecc71;
-    margin-bottom: 1rem;
     font-size: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .break-reminder p {
     color: #666;
-    margin-bottom: 1.5rem;
-    font-size: 1.1rem;
+    margin-bottom: 1rem;
 }
 
-.break-time-display {
-    font-size: 1.2rem;
-    color: #333;
+.break-timer {
+    font-size: 2rem;
     font-weight: bold;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    animation: pulse 1s infinite;
+    color: #2ecc71;
+    margin: 1rem 0;
 }
 
-@keyframes pulseBackground {
-    0% { background: rgba(0, 0, 0, 0.8); }
-    50% { background: rgba(0, 0, 0, 0.9); }
-    100% { background: rgba(0, 0, 0, 0.8); }
-}
-
-@keyframes bounceIn {
-    0% { transform: scale(0.3); opacity: 0; }
-    50% { transform: scale(1.05); }
-    70% { transform: scale(0.9); }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-20px);
+    }
+    60% {
+        transform: translateY(-10px);
+    }
 }
 
 /* 通知提示样式 */
@@ -1065,11 +1043,7 @@ canvas {
 
 /* 自定义时间设置样式 */
 .custom-time-settings {
-    display: flex;
-    flex-direction: row;
-    gap: 1.5rem;
-    justify-content: center;
-    margin-top: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .custom-time-input {
@@ -1109,12 +1083,9 @@ canvas {
 
 /* 时间设置显示样式 */
 .time-settings-display {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 10px;
-    width: 100%;
-    text-align: center;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 1.5rem;
+    border-radius: 15px;
 }
 
 .time-settings-info {
@@ -1128,4 +1099,12 @@ canvas {
 .time-settings-info span {
     color: #2ecc71;
     font-weight: bold;
+}
+
+/* 确保所有模块高度一致 */
+.timer-section,
+.tasks-section,
+.stats-section {
+    height: fit-content;
+    min-height: 700px;
 } 

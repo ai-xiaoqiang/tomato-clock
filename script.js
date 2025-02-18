@@ -112,7 +112,7 @@ class PomodoroTimer {
     }
 
     validateCustomTime(time, isBreakTime = false) {
-        const minTime = isBreakTime ? 1 : 5;
+        const minTime = isBreakTime ? 1 : 1;
         const maxTime = isBreakTime ? 30 : 120;
         
         if (!time || isNaN(time) || time < minTime || time > maxTime) {
@@ -231,24 +231,28 @@ class PomodoroTimer {
 
     completePomodoro() {
         if (this.startedAt && this.isWorkTime) {
-            // 1. 工作时间结束
+            // 1. 工作时间结束，暂停计时器
+            clearInterval(this.timerId);
             const duration = Math.round((Date.now() - this.startedAt) / 1000);
             
             // 2. 更新任务状态和统计
             if (taskManager.currentTaskId) {
-                // 先记录统计数据
                 statsManager.recordPomodoro(taskManager.currentTaskId, duration);
-                
-                // 更新任务状态为完成
                 const task = taskManager.tasks.find(t => t.id === taskManager.currentTaskId);
                 if (task) {
                     taskManager.completeTask(taskManager.currentTaskId);
-                    Logger.log('Task completed:', task.title);
                 }
             }
             
-            // 3. 开始休息时间
-            this.startBreakTime();
+            // 3. 显示休息提醒并播放提示音
+            this.alertSound.play();
+            this.showBreakReminder();
+            
+            // 4. 开始休息时间
+            setTimeout(() => {
+                this.startBreakTime();
+            }, 500); // 短暂延迟确保提醒显示
+            
         } else if (!this.isWorkTime && this.timeLeft <= 0) {
             this.completeBreakTime();
         }
@@ -262,36 +266,37 @@ class PomodoroTimer {
         this.isWorkTime = false;
         this.timeLeft = this.breakTime;
         this.totalTime = this.breakTime;
-        this.startedAt = Date.now(); // 设置新的开始时间
+        this.startedAt = Date.now();
         
         // 更新显示
         this.updateDisplay();
         this.updateTheme();
         this.updateProgressRing();
         
-        // 显示强提醒
-        this.showBreakReminder();
-        this.playAlertSound();
-        
         // 启动休息时间计时器
         this.isRunning = true;
         this.timerId = setInterval(() => {
             this.timeLeft--;
             
-            if (this.timeLeft <= 0) {
-                clearInterval(this.timerId);
-                this.completePomodoro(); // 休息时间结束时也调用completePomodoro
-                return;
-            }
-            
+            // 同时更新主计时器和休息提醒的显示
             this.updateDisplay();
             this.updateProgressRing();
+            this.updateBreakTimerDisplay();
+            
+            if (this.timeLeft <= 0) {
+                clearInterval(this.timerId);
+                this.completePomodoro();
+                return;
+            }
         }, 1000);
     }
 
     completeBreakTime() {
-        this.pause();
+        // 清除计时器
+        clearInterval(this.timerId);
         this.reset();
+        
+        // 隐藏休息提醒
         this.hideBreakReminder();
         
         // 切换到下一个任务
@@ -306,88 +311,77 @@ class PomodoroTimer {
         notification.className = 'notification cycle-complete';
         notification.innerHTML = `
             <div class="notification-content">
-                <h4>🎯 任务周期完成</h4>
-                <p>休息结束，可以开始新的专注了！</p>
+                <h4>🌟 休息时间结束</h4>
+                <p>准备开始新的工作吧！</p>
             </div>
         `;
         
         document.body.appendChild(notification);
         
-        // 播放提示音
-        this.alertSound.play();
-        
         setTimeout(() => {
             notification.classList.add('fade-out');
             setTimeout(() => notification.remove(), 300);
-        }, 3000);
+        }, 2000);
     }
 
     createBreakReminder() {
-        const reminder = document.createElement('div');
-        reminder.className = 'break-reminder';
-        reminder.innerHTML = `
-            <div class="break-reminder-content">
-                <h3>🎉 恭喜完成一个番茄钟！</h3>
-                <p>现在是休息时间，请放松一下吧！</p>
-                <div class="break-time-display"></div>
-            </div>
-        `;
-        document.body.appendChild(reminder);
-        this.breakReminder = reminder;
-        this.breakTimeDisplay = reminder.querySelector('.break-time-display');
+        if (!this.breakReminder) {
+            this.breakReminder = document.createElement('div');
+            this.breakReminder.className = 'break-reminder';
+            this.breakReminder.innerHTML = `
+                <div class="break-reminder-content">
+                    <h3>🎉 工作时间结束</h3>
+                    <p>该休息一下了！</p>
+                    <div class="break-timer">05:00</div>
+                </div>
+            `;
+            
+            document.body.appendChild(this.breakReminder);
+            this.breakTimerDisplay = this.breakReminder.querySelector('.break-timer');
+            
+            // 添加点击事件，允许用户点击背景关闭提醒
+            this.breakReminder.addEventListener('click', (e) => {
+                if (e.target === this.breakReminder) {
+                    this.hideBreakReminder();
+                }
+            });
+        }
     }
 
     showBreakReminder() {
-        // 创建休息提醒弹窗
-        const reminder = document.createElement('div');
-        reminder.className = 'break-reminder active';
-        reminder.innerHTML = `
-            <div class="break-reminder-content">
-                <h3>🎉 恭喜完成一个番茄钟！</h3>
-                <p>现在是休息时间，请放松一下吧！</p>
-                <div class="break-time-display"></div>
-            </div>
-        `;
-        
-        document.body.appendChild(reminder);
-        
-        // 播放提示音
-        this.playAlertSound();
-        
-        // 更新休息时间显示
-        const timeDisplay = reminder.querySelector('.break-time-display');
-        const updateTime = () => {
-            const minutes = Math.floor(this.timeLeft / 60);
-            const seconds = this.timeLeft % 60;
-            timeDisplay.textContent = 
-                `休息时间还剩：${minutes}:${seconds.toString().padStart(2, '0')}`;
-        };
-        
-        updateTime();
-        this.breakUpdateTimer = setInterval(updateTime, 1000);
-    }
-
-    playAlertSound() {
-        // 播放提示音
-        this.alertSound.currentTime = 0;
-        this.alertSound.play().catch(error => {
-            console.warn('Failed to play alert sound:', error);
-        });
-        
-        // 震动提醒（如果设备支持）
-        if ('vibrate' in navigator) {
-            navigator.vibrate([200, 100, 200]);
+        if (this.breakReminder) {
+            // 确保弹窗存在并显示
+            this.breakReminder.style.display = 'flex';
+            
+            // 添加震动效果
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+            
+            // 初始化休息时间显示
+            this.updateBreakTimerDisplay();
+            
+            // 确保弹窗在最上层
+            this.breakReminder.style.zIndex = '1000';
+        } else {
+            // 如果弹窗不存在，重新创建
+            this.createBreakReminder();
+            this.showBreakReminder();
         }
     }
 
     hideBreakReminder() {
-        const reminder = document.querySelector('.break-reminder');
-        if (reminder) {
-            reminder.classList.remove('active');
-            setTimeout(() => {
-                reminder.remove();
-            }, 300);
-            clearInterval(this.breakUpdateTimer);
+        if (this.breakReminder) {
+            this.breakReminder.style.display = 'none';
+        }
+    }
+
+    updateBreakTimerDisplay() {
+        if (this.breakTimerDisplay) {
+            const minutes = Math.floor(this.timeLeft / 60);
+            const seconds = this.timeLeft % 60;
+            this.breakTimerDisplay.textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
     }
 
@@ -695,9 +689,12 @@ class TaskManager {
     }
 
     deleteTask(taskId) {
-        // 删除任务时只确认一次
         const task = this.tasks.find(t => t.id === taskId);
         if (!task) return;
+
+        // 标记任务为已删除
+        task.deleted = true;
+        task.deletedAt = Date.now();
         
         // 如果删除的是当前专注的任务，重置计时器
         if (taskId === this.currentTaskId) {
@@ -705,9 +702,13 @@ class TaskManager {
             this.timer.reset();
         }
         
-        this.tasks = this.tasks.filter(t => t.id !== taskId);
+        // 从显示列表中移除
+        this.tasks = this.tasks.filter(t => !t.deleted);
         this.saveTasks();
         this.renderTasks();
+        
+        // 清理统计数据
+        statsManager.cleanDeletedTaskStats();
     }
 
     toggleTask(taskId) {
@@ -1060,75 +1061,40 @@ class StatsManager {
             timeDistribution: {} // 时间分布
         };
         
-        // 初始化图表容器
-        this.charts = {};
-
         // 加载保存的统计数据
         this.loadStats();
         
-        // 设置图表主题
-        this.chartTheme = {
-            colors: {
-                primary: {
-                    base: '#2ecc71',
-                    light: 'rgba(46, 204, 113, 0.2)',
-                    dark: '#27ae60'
-                },
-                secondary: {
-                    base: '#3498db',
-                    light: 'rgba(52, 152, 219, 0.2)',
-                    dark: '#2980b9'
-                },
-                accent: {
-                    base: '#e74c3c',
-                    light: 'rgba(231, 76, 60, 0.2)',
-                    dark: '#c0392b'
-                }
-            }
-        };
+        // 清理已删除任务的统计数据
+        this.cleanDeletedTaskStats();
+    }
 
-        // 初始化图表
-        this.initCharts();
+    // 清理已删除任务的统计数据
+    cleanDeletedTaskStats() {
+        const existingTaskIds = taskManager.tasks.map(task => task.id);
         
-        // 更新显示
+        // 清理任务统计
+        Object.keys(this.stats.tasks).forEach(taskId => {
+            if (!existingTaskIds.includes(taskId)) {
+                delete this.stats.tasks[taskId];
+                Logger.log('Cleaned up stats for deleted task:', taskId);
+            }
+        });
+        
+        this.saveStats();
         this.updateOverview();
         this.updateCharts();
-
-        // 添加任务完成统计
-        this.taskCompletionStats = {
-            daily: {},
-            total: {
-                completed: 0,
-                totalTime: 0,
-                avgTime: 0
-            }
-        };
-    }
-
-    loadStats() {
-        try {
-            const savedStats = localStorage.getItem('pomodoroStats');
-            if (savedStats) {
-                this.stats = JSON.parse(savedStats);
-            }
-            console.log('Loaded stats:', this.stats); // 调试用
-        } catch (error) {
-            console.error('Error loading stats:', error);
-            this.stats = {
-                daily: {},
-                tasks: {},
-                timeDistribution: {}
-            };
-        }
-    }
-
-    saveStats() {
-        localStorage.setItem('pomodoroStats', JSON.stringify(this.stats));
     }
 
     recordPomodoro(taskId, duration) {
         const today = new Date().toISOString().split('T')[0];
         Logger.log('Recording pomodoro:', { taskId, duration, today });
+
+        // 检查任务是否存在
+        const task = taskManager.tasks.find(t => t.id === taskId);
+        if (!task) {
+            Logger.warn('Attempted to record pomodoro for non-existent task:', taskId);
+            return;
+        }
 
         // 更新每日统计
         if (!this.stats.daily[today]) {
@@ -1146,16 +1112,59 @@ class StatsManager {
         if (!this.stats.tasks[taskId]) {
             this.stats.tasks[taskId] = {
                 pomodoroCount: 0,
-                totalTime: 0
+                totalTime: 0,
+                lastUpdated: Date.now()
             };
         }
         
         this.stats.tasks[taskId].pomodoroCount++;
         this.stats.tasks[taskId].totalTime += duration;
+        this.stats.tasks[taskId].lastUpdated = Date.now();
+
+        // 更新时间分布
+        const hour = new Date().getHours();
+        const timeKey = `${hour.toString().padStart(2, '0')}:00`;
+        if (!this.stats.timeDistribution[timeKey]) {
+            this.stats.timeDistribution[timeKey] = {
+                count: 0,
+                totalTime: 0
+            };
+        }
+        this.stats.timeDistribution[timeKey].count++;
+        this.stats.timeDistribution[timeKey].totalTime += duration;
 
         this.saveStats();
         this.updateOverview();
         this.updateCharts();
+    }
+
+    getTaskData() {
+        // 只获取现存任务的统计数据
+        const existingTaskIds = taskManager.tasks.map(task => task.id);
+        
+        return Object.entries(this.stats.tasks)
+            .filter(([taskId]) => existingTaskIds.includes(taskId))
+            .map(([taskId, stats]) => {
+                const task = taskManager.tasks.find(t => t.id === taskId);
+                return {
+                    title: task.title,
+                    time: Math.round(stats.totalTime / 60),
+                    count: stats.pomodoroCount
+                };
+            })
+            .sort((a, b) => b.time - a.time)
+            .slice(0, 5); // 只显示前5个任务
+    }
+
+    calculateCompletionRate(todayStats) {
+        // 只计算现存任务的完成率
+        const activeTasks = taskManager.tasks.filter(task => !task.deleted);
+        const totalTasks = activeTasks.length;
+        if (totalTasks === 0) return '0%';
+        
+        const completedTasks = activeTasks.filter(task => task.completed).length;
+        const rate = Math.round((completedTasks / totalTasks) * 100);
+        return `${rate}%`;
     }
 
     updateOverview() {
@@ -1166,33 +1175,15 @@ class StatsManager {
             completedTasks: 0
         };
 
-        console.log('Updating overview with stats:', todayStats); // 调试用
-
         // 更新统计卡片显示
-        const elements = {
-            totalPomodoros: todayStats.pomodoroCount,
-            totalFocusTime: this.formatTime(todayStats.totalFocusTime),
-            completedTasks: todayStats.completedTasks,
-            completionRate: this.calculateCompletionRate(todayStats)
-        };
-
-        // 更新DOM
-        Object.entries(elements).forEach(([id, value]) => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value;
-            } else {
-                console.warn(`Element with id ${id} not found`); // 调试用
-            }
-        });
-    }
-
-    calculateCompletionRate(todayStats) {
-        const totalTasks = taskManager.tasks.length;
-        if (totalTasks === 0) return '0%';
+        document.getElementById('totalPomodoros').textContent = todayStats.pomodoroCount;
+        document.getElementById('totalFocusTime').textContent = this.formatTime(todayStats.totalFocusTime);
         
-        const rate = Math.round((todayStats.completedTasks / totalTasks) * 100);
-        return `${rate}%`;
+        // 只统计现存的已完成任务
+        const completedTasksCount = taskManager.tasks.filter(task => task.completed && !task.deleted).length;
+        document.getElementById('completedTasks').textContent = completedTasksCount;
+        
+        document.getElementById('completionRate').textContent = this.calculateCompletionRate(todayStats);
     }
 
     formatTime(minutes) {
@@ -1377,20 +1368,6 @@ class StatsManager {
                 count: stats.pomodoroCount,
                 time: Math.round(stats.totalFocusTime / 60 * 10) / 10 // 转换为小时，保留一位小数
             }));
-    }
-
-    getTaskData() {
-        return Object.entries(this.stats.tasks)
-            .map(([taskId, stats]) => {
-                const task = taskManager.tasks.find(t => t.id === taskId);
-                return {
-                    title: task ? task.title : '已删除的任务',
-                    time: Math.round(stats.totalTime / 60), // 转换为分钟
-                    count: stats.pomodoroCount
-                };
-            })
-            .sort((a, b) => b.time - a.time)
-            .slice(0, 5); // 只显示前5个任务
     }
 
     getTimeDistributionData() {
